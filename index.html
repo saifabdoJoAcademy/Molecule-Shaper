@@ -1,82 +1,183 @@
-<script>
-  var canvas = document.querySelector("#unity-canvas");
-  var unityInstance = null;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Molecule Shaper</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  function unityShowBanner(msg, type) {
-    var warningBanner = document.querySelector("#unity-warning");
-
-    function updateBannerVisibility() {
-      warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+    body {
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
     }
 
-    var div = document.createElement('div');
-    div.innerHTML = msg;
-    warningBanner.appendChild(div);
-
-    if (type == 'error') div.style = 'background: red; padding: 10px;';
-    else {
-      if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-      setTimeout(function () {
-        warningBanner.removeChild(div);
-        updateBannerVisibility();
-      }, 5000);
+    #unity-container {
+      position: relative;
+      width: 960px;
+      height: 600px;
     }
 
-    updateBannerVisibility();
-  }
-
-  var buildUrl = "Build";
-  var loaderUrl = buildUrl + "/Molecule Shaper Test.loader.js";
-
-  var config = {
-    arguments: [],
-    dataUrl: buildUrl + "/Molecule Shaper Test.data",
-    frameworkUrl: buildUrl + "/Molecule Shaper Test.framework.js",
-    codeUrl: buildUrl + "/Molecule Shaper Test.wasm",
-    streamingAssetsUrl: "StreamingAssets",
-    companyName: "Ula",
-    productName: "Molecule Shaper",
-    productVersion: "1.0",
-    showBanner: unityShowBanner,
-  };
-
-
-  function StartGame(level) {
-    if (!unityInstance) {
-      console.log("Unity not ready yet");
-      return;
+    #unity-canvas {
+      width: 100%;
+      height: 100%;
+      background: #000;
     }
 
-    unityInstance.SendMessage(
-      "LevelManager",
-      "LoadLevel",
-      level.toString()
-    );
-  }
+    #unity-loading-bar {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60%;
+    }
 
-  document.querySelector("#unity-loading-bar").style.display = "block";
+    #unity-progress-bar-empty {
+      width: 100%;
+      height: 18px;
+      background: #333;
+      border-radius: 9px;
+      overflow: hidden;
+    }
 
-  var script = document.createElement("script");
-  script.src = loaderUrl;
+    #unity-progress-bar-full {
+      width: 0%;
+      height: 100%;
+      background: #4af;
+      border-radius: 9px;
+      transition: width 0.2s ease;
+    }
 
-  script.onload = () => {
-    createUnityInstance(canvas, config, (progress) => {
-      document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
-    }).then((instance) => {
-      unityInstance = instance;
+    #unity-warning {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      display: none;
+      z-index: 10;
+    }
 
+    #unity-fullscreen-button {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    #unity-fullscreen-button:hover {
+      background: rgba(255,255,255,0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="unity-container">
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <div id="unity-warning"></div>
+    <div id="unity-loading-bar">
+      <div id="unity-progress-bar-empty">
+        <div id="unity-progress-bar-full"></div>
+      </div>
+    </div>
+    <button id="unity-fullscreen-button">⛶ Fullscreen</button>
+  </div>
+
+  <script>
+    var canvas = document.querySelector("#unity-canvas");
+    var unityInstance = null;
+
+    function unityShowBanner(msg, type) {
+      var warningBanner = document.querySelector("#unity-warning");
+
+      function updateBannerVisibility() {
+        warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+      }
+
+      var div = document.createElement('div');
+      div.innerHTML = msg;
+      warningBanner.appendChild(div);
+
+      if (type == 'error') div.style = 'background: red; padding: 10px;';
+      else {
+        if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+        setTimeout(function () {
+          warningBanner.removeChild(div);
+          updateBannerVisibility();
+        }, 5000);
+      }
+
+      updateBannerVisibility();
+    }
+
+    var buildUrl = "Build";
+    var loaderUrl = buildUrl + "/Molecule Shaper Test.loader.js";
+
+    var config = {
+      arguments: [],
+      dataUrl: buildUrl + "/Molecule Shaper Test.data",
+      frameworkUrl: buildUrl + "/Molecule Shaper Test.framework.js",
+      codeUrl: buildUrl + "/Molecule Shaper Test.wasm",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "Ula",
+      productName: "Molecule Shaper",
+      productVersion: "1.0",
+      showBanner: unityShowBanner,
+    };
+
+    function StartGame(level) {
+      if (!unityInstance) {
+        console.log("Unity not ready yet");
+        return;
+      }
+
+      unityInstance.SendMessage(
+        "LevelManager",
+        "LoadLevel",
+        level.toString()
+      );
+    }
+
+    document.querySelector("#unity-loading-bar").style.display = "block";
+
+    var script = document.createElement("script");
+    script.src = loaderUrl;
+
+    script.onerror = () => {
+      alert("Failed to load Unity loader. Make sure your Build folder is in the same directory as this file and the file names match exactly.");
       document.querySelector("#unity-loading-bar").style.display = "none";
+    };
 
-      document.querySelector("#unity-fullscreen-button").onclick = () => {
-        unityInstance.SetFullscreen(1);
-      };
+    script.onload = () => {
+      createUnityInstance(canvas, config, (progress) => {
+        document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
+      }).then((instance) => {
+        unityInstance = instance;
+        document.querySelector("#unity-loading-bar").style.display = "none";
 
-      StartGame(1);
+        document.querySelector("#unity-fullscreen-button").onclick = () => {
+          unityInstance.SetFullscreen(1);
+        };
 
-    }).catch((message) => {
-      alert(message);
-    });
-  };
+        StartGame(1);
 
-  document.body.appendChild(script);
-</script>
+      }).catch((message) => {
+        alert("Unity failed to start: " + message);
+      });
+    };
+
+    document.body.appendChild(script);
+  </script>
+
+</body>
+</html>
